@@ -1,103 +1,235 @@
-import Image from "next/image";
+'use client';
+
+import { useState } from 'react';
+import { useStore } from '@/stores/useStore';
+import { LLMProvider, LLMResponse } from '@/types';
+import { callLLM } from '@/lib/api';
+import { useStreamingLLM } from '@/hooks/useStreamingLLM';
+import Header from '@/components/Header';
+import PromptInput from '@/components/PromptInput';
+import ResponseGrid from '@/components/ResponseGrid';
+import ProviderModal from '@/components/ProviderModal';
+import SettingsModal from '@/components/SettingsModal';
+import RerunModal from '@/components/RerunModal';
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [showProviderModal, setShowProviderModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showRerunModal, setShowRerunModal] = useState(false);
+  const [editingProvider, setEditingProvider] = useState<string | null>(null);
+  const [rerunProvider, setRerunProvider] = useState<LLMProvider | null>(null);
+  
+  const { 
+    providers, 
+    currentRequest, 
+    isLoading, 
+    currentPrompt, 
+    systemPrompt, 
+    setCurrentRequest,
+    addToHistory,
+    setLoading,
+    updateResponse,
+    updateProvider
+  } = useStore();
+  
+  const { streamLLMResponse } = useStreamingLLM();
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+  const handleAddProvider = () => {
+    setEditingProvider(null);
+    setShowProviderModal(true);
+  };
+
+  const handleEditProvider = (providerId: string) => {
+    setEditingProvider(providerId);
+    setShowProviderModal(true);
+  };
+
+  const handleRerunProvider = (providerId: string) => {
+    const provider = providers.find(p => p.id === providerId);
+    if (provider) {
+      setRerunProvider(provider);
+      setShowRerunModal(true);
+    }
+  };
+
+  const handleRerun = async (providerId: string, settings: {
+    model: string;
+    temperature: number;
+    maxTokens: number;
+    topP: number;
+  }) => {
+    const provider = providers.find(p => p.id === providerId);
+    if (!provider || !currentPrompt.trim()) return;
+
+    // Update provider model if it changed
+    if (provider.model !== settings.model) {
+      updateProvider(providerId, { model: settings.model });
+    }
+
+    setLoading(true);
+    
+    const requestId = currentRequest?.id || `req-${Date.now()}`;
+    
+    // Create or update response for this provider
+    const responseId = `${providerId}-${Date.now()}`;
+    const newResponse: LLMResponse = {
+      id: responseId,
+      providerId: providerId,
+      providerName: provider.name,
+      content: '',
+      timestamp: Date.now(),
+      responseTime: 0,
+      status: 'pending' as const,
+    };
+
+    // If no current request, create a new one
+    if (!currentRequest) {
+      const newRequest = {
+        id: requestId,
+        prompt: currentPrompt,
+        systemPrompt: systemPrompt || undefined,
+        timestamp: Date.now(),
+        responses: [newResponse],
+        settings: {
+          temperature: settings.temperature,
+          maxTokens: settings.maxTokens,
+          topP: settings.topP,
+        },
+      };
+      setCurrentRequest(newRequest);
+      addToHistory(newRequest);
+    } else {
+      // Update existing request with new response
+      const updatedRequest = {
+        ...currentRequest,
+        responses: [
+          ...currentRequest.responses.filter(r => r.providerId !== providerId),
+          newResponse
+        ]
+      };
+      setCurrentRequest(updatedRequest);
+      // Update history as well
+      addToHistory(updatedRequest);
+    }
+
+    // Add the response to the store immediately
+    updateResponse(requestId, newResponse);
+
+    try {
+      // Try streaming first
+      try {
+        await streamLLMResponse(requestId, {
+          provider: { ...provider, model: settings.model },
+          prompt: currentPrompt,
+          systemPrompt: systemPrompt || undefined,
+          temperature: settings.temperature,
+          maxTokens: settings.maxTokens,
+          topP: settings.topP,
+        });
+      } catch (streamingError) {
+        console.warn(`[${provider.name}] Streaming failed, falling back to non-streaming:`, streamingError);
+        
+        // Fallback to non-streaming
+        const response = await callLLM(
+          { ...provider, model: settings.model },
+          {
+            prompt: currentPrompt,
+            systemPrompt: systemPrompt || undefined,
+            temperature: settings.temperature,
+            maxTokens: settings.maxTokens,
+            topP: settings.topP,
+          }
+        );
+        
+        // Add a note that this was a fallback
+        const fallbackResult = {
+          ...response,
+          content: response.content + '\n\n_Note: This response used non-streaming fallback due to streaming issues._',
+        };
+
+        updateResponse(requestId, fallbackResult);
+      }
+    } catch (error) {
+      const errorResponse: LLMResponse = {
+        id: responseId,
+        providerId: providerId,
+        providerName: provider.name,
+        content: '',
+        timestamp: Date.now(),
+        responseTime: 0,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        status: 'error',
+      };
+
+      updateResponse(requestId, errorResponse);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Header 
+        onAddProvider={handleAddProvider}
+        onOpenSettings={() => setShowSettingsModal(true)}
+      />
+      
+      <main className="container mx-auto px-4 py-8">
+        <div className="space-y-8">
+          <PromptInput />
+          
+          {providers.length === 0 ? (
+            <div className="text-center py-12">
+              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+                No LLM Providers Configured
+              </h2>
+              <p className="text-gray-600 mb-6">
+                Add your first LLM provider to start comparing responses
+              </p>
+              <button
+                onClick={handleAddProvider}
+                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Add Provider
+              </button>
+            </div>
+          ) : (
+            <ResponseGrid 
+              onEditProvider={handleEditProvider}
+              onRerunProvider={handleRerunProvider}
+              isLoading={isLoading}
+              currentRequest={currentRequest}
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+          )}
         </div>
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+      {showProviderModal && (
+        <ProviderModal
+          isOpen={showProviderModal}
+          onClose={() => setShowProviderModal(false)}
+          editingId={editingProvider}
+        />
+      )}
+
+      {showSettingsModal && (
+        <SettingsModal
+          isOpen={showSettingsModal}
+          onClose={() => setShowSettingsModal(false)}
+        />
+      )}
+
+      {showRerunModal && rerunProvider && (
+        <RerunModal
+          isOpen={showRerunModal}
+          onClose={() => {
+            setShowRerunModal(false);
+            setRerunProvider(null);
+          }}
+          provider={rerunProvider}
+          onRerun={handleRerun}
+        />
+      )}
     </div>
   );
 }
