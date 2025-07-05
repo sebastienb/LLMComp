@@ -2,6 +2,11 @@
 
 A powerful, real-time web application for comparing responses from multiple Large Language Model (LLM) providers side-by-side. Test prompts across OpenAI, Anthropic, Google, local models, and custom providers simultaneously.
 
+![CleanShot 2025-07-05 at 15 14 36](https://github.com/user-attachments/assets/b69f9f31-7e96-4817-9036-be4e7291188a)
+
+
+
+
 ![Multi-LLM Comparison Tool](https://img.shields.io/badge/Next.js-14+-000000?style=flat&logo=next.js&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6?style=flat&logo=typescript&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.0+-06B6D4?style=flat&logo=tailwindcss&logoColor=white)
