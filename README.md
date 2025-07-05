@@ -33,6 +33,13 @@ A powerful, real-time web application for comparing responses from multiple Larg
 - Response metadata (timing, tokens, cost estimates)
 - Copy to clipboard and fullscreen viewing with syntax highlighting
 
+### 🎨 **Multiple UI Themes**
+- **Default Theme**: Clean, spacious layout with professional styling
+- **TUI Theme**: Terminal-inspired interface for maximum efficiency and compact display
+- **Monitor Theme**: Dark monitoring interface with professional status indicators
+- Live theme preview and switching without page refresh
+- Consistent theming across all pages including history dashboard
+
 ### 📊 **Advanced History Dashboard**
 - Dedicated history page with table-style layout
 - Provider performance comparison at a glance
@@ -43,7 +50,7 @@ A powerful, real-time web application for comparing responses from multiple Larg
 ### 🎨 **Rich Content Rendering**
 - Professional markdown rendering with syntax highlighting
 - GitHub Flavored Markdown support (tables, code blocks, lists)
-- Dark theme code highlighting for better readability
+- Theme-aware code highlighting optimized for each UI theme
 - Responsive content display with proper typography
 
 ### 🔧 **Developer-Friendly**
@@ -228,12 +235,14 @@ src/
 │   ├── ResponseCard.tsx   # Individual response display with markdown
 │   ├── ResponseGrid.tsx   # Response layout manager
 │   ├── ProviderModal.tsx  # Provider configuration modal
-│   └── SettingsModal.tsx  # Global settings
+│   ├── SettingsModal.tsx  # Global settings
+│   └── ThemePicker.tsx    # Theme selection modal with live preview
 ├── hooks/                 # Custom React hooks
 │   └── useStreamingLLM.ts # Streaming response handler
 ├── lib/                   # Utility libraries
 │   ├── api.ts            # API integration layer
-│   └── crypto.ts         # Encryption utilities
+│   ├── crypto.ts         # Encryption utilities
+│   └── themes.ts         # Theme system with multiple UI paradigms
 ├── stores/               # State management
 │   └── useStore.ts       # Zustand store with history persistence
 └── types/                # TypeScript definitions

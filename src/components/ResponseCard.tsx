@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { LLMProvider, LLMResponse } from '@/types';
 import { useStore } from '@/stores/useStore';
+import { getThemeClasses } from '@/lib/themes';
 import MarkdownRenderer from './MarkdownRenderer';
 import StreamingDebugger from './StreamingDebugger';
 
@@ -15,7 +16,8 @@ interface ResponseCardProps {
 }
 
 export default function ResponseCard({ provider, response, isLoading, onEditProvider, onRerunProvider }: ResponseCardProps) {
-  const { toggleProvider } = useStore();
+  const { toggleProvider, theme } = useStore();
+  const themeClasses = getThemeClasses(theme);
   const [isExpanded, setIsExpanded] = useState(false);
   const [showFullscreen, setShowFullscreen] = useState(false);
   const [showDebugger, setShowDebugger] = useState(false);
@@ -61,49 +63,53 @@ export default function ResponseCard({ provider, response, isLoading, onEditProv
 
   return (
     <>
-      <div className={`bg-white rounded-lg shadow-sm border overflow-hidden ${
-        provider.isActive ? 'border-gray-200' : 'border-gray-200 opacity-60'
+      <div className={`${themeClasses.card} overflow-hidden ${
+        provider.isActive ? '' : 'opacity-60'
       }`}>
-        <div className="p-4 border-b border-gray-200">
-          <div className="flex justify-between items-start mb-2">
+        <div className={themeClasses.cardHeader}>
+          <div className={`flex justify-between items-start ${theme === 'tui' ? 'mb-1' : 'mb-2'}`}>
             <div>
-              <h3 className="font-medium text-gray-900">{provider.name}</h3>
-              <p className="text-sm text-gray-500">{provider.model}</p>
+              <h3 className={`${themeClasses.text} font-medium ${theme === 'tui' ? 'text-xs' : ''}`}>
+                {theme === 'tui' ? provider.name.toUpperCase().slice(0, 8) : provider.name}
+              </h3>
+              <p className={`${themeClasses.textMuted} ${theme === 'tui' ? 'text-xs' : 'text-sm'}`}>
+                {theme === 'tui' ? provider.model.slice(0, 12) : provider.model}
+              </p>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className={`flex items-center ${theme === 'tui' ? 'space-x-1' : 'space-x-2'}`}>
               <button
                 onClick={() => toggleProvider(provider.id)}
-                className={`w-4 h-4 rounded-full border-2 ${
+                className={`${theme === 'tui' ? 'w-3 h-3' : 'w-4 h-4'} rounded-full border-2 ${
                   provider.isActive
-                    ? 'bg-green-500 border-green-500'
-                    : 'bg-gray-200 border-gray-300'
+                    ? theme === 'tui' ? 'bg-green-400 border-green-400' : 'bg-green-500 border-green-500'
+                    : theme === 'tui' ? 'bg-black border-green-400' : 'bg-gray-200 border-gray-300'
                 }`}
                 title={provider.isActive ? 'Active' : 'Inactive'}
               />
               <button
                 onClick={() => onRerunProvider(provider.id)}
-                className="text-gray-400 hover:text-gray-600"
+                className={themeClasses.buttonIcon}
                 title="Rerun with this provider"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className={theme === 'tui' ? 'w-3 h-3' : 'w-4 h-4'} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
               </button>
               <button
                 onClick={() => setShowDebugger(true)}
-                className="text-gray-400 hover:text-gray-600"
+                className={themeClasses.buttonIcon}
                 title="Debug streaming"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className={theme === 'tui' ? 'w-3 h-3' : 'w-4 h-4'} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                 </svg>
               </button>
               <button
                 onClick={() => onEditProvider(provider.id)}
-                className="text-gray-400 hover:text-gray-600"
+                className={themeClasses.buttonIcon}
                 title="Edit provider"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className={theme === 'tui' ? 'w-3 h-3' : 'w-4 h-4'} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
               </button>
@@ -111,110 +117,133 @@ export default function ResponseCard({ provider, response, isLoading, onEditProv
           </div>
           
           <div className="flex items-center justify-between">
-            <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(response?.status)}`}>
-              {getStatusText(response?.status)}
+            <span className={`inline-flex ${theme === 'tui' ? 'px-1 py-0 text-xs' : 'px-2 py-1 text-xs'} font-medium ${theme === 'tui' ? '' : 'rounded-full'} ${getStatusColor(response?.status)}`}>
+              {theme === 'tui' ? getStatusText(response?.status).slice(0, 4).toUpperCase() : getStatusText(response?.status)}
             </span>
             
             {response?.responseTime && (
-              <span className="text-xs text-gray-500">
-                {response.responseTime}ms
+              <span className={themeClasses.textSmall}>
+                {theme === 'tui' ? `${response.responseTime}ms` : `${response.responseTime}ms`}
               </span>
             )}
           </div>
         </div>
 
-        <div className="p-4">
+        <div className={themeClasses.cardBody}>
           {(isLoading || response?.status === 'streaming') && (
-            <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className={`flex items-center justify-center ${theme === 'tui' ? 'py-2' : 'py-8'}`}>
+              <div className={`animate-spin rounded-full border-b-2 ${theme === 'tui' ? 'h-4 w-4 border-green-400' : 'h-8 w-8 border-blue-600'}`}></div>
               {response?.status === 'streaming' && (
-                <span className="ml-2 text-sm text-blue-600">Streaming response...</span>
+                <span className={`ml-2 ${themeClasses.textSmall} ${theme === 'tui' ? 'text-cyan-400' : 'text-blue-600'}`}>
+                  {theme === 'tui' ? 'STREAM...' : 'Streaming response...'}
+                </span>
               )}
             </div>
           )}
 
           {response?.error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-              <div className="text-sm font-medium text-red-800 mb-1">Error</div>
-              <div className="text-sm text-red-700">{response.error}</div>
+            <div className={`${theme === 'tui' ? 'border border-red-400 bg-black p-1' : 'bg-red-50 border border-red-200 rounded-lg p-3'}`}>
+              <div className={`${themeClasses.textSmall} font-medium ${theme === 'tui' ? 'text-red-400' : 'text-red-800'} mb-1`}>
+                {theme === 'tui' ? 'ERR:' : 'Error'}
+              </div>
+              <div className={`${themeClasses.textSmall} ${theme === 'tui' ? 'text-red-400' : 'text-red-700'}`}>
+                {theme === 'tui' ? response.error.slice(0, 50) + '...' : response.error}
+              </div>
             </div>
           )}
 
           {response?.content && (
-            <div className="space-y-3">
+            <div className={theme === 'tui' ? 'space-y-1' : 'space-y-3'}>
               <div className="relative">
-                <div className={`${!isExpanded ? 'max-h-48 overflow-hidden' : ''}`}>
+                <div className={`${!isExpanded ? (theme === 'tui' ? 'max-h-24 overflow-hidden' : 'max-h-48 overflow-hidden') : ''}`}>
                   <MarkdownRenderer 
                     content={response.content} 
-                    className="text-sm"
+                    className={theme === 'tui' ? 'text-xs' : 'text-sm'}
                   />
                   {response.status === 'streaming' && (
-                    <span className="inline-block w-2 h-4 bg-blue-600 ml-1 animate-pulse"></span>
+                    <span className={`inline-block w-2 h-4 ml-1 animate-pulse ${theme === 'tui' ? 'bg-cyan-400' : 'bg-blue-600'}`}></span>
                   )}
                 </div>
                 
-                {response.content.length > 300 && (
+                {response.content.length > (theme === 'tui' ? 150 : 300) && (
                   <button
                     onClick={() => setIsExpanded(!isExpanded)}
-                    className="text-blue-600 hover:text-blue-800 text-sm mt-2"
+                    className={`${themeClasses.text} ${theme === 'tui' ? 'text-xs mt-1 hover:text-green-300' : 'text-sm mt-2 hover:text-blue-800'}`}
                   >
-                    {isExpanded ? 'Show less' : 'Show more'}
+                    {isExpanded ? (theme === 'tui' ? '[-]' : 'Show less') : (theme === 'tui' ? '[+]' : 'Show more')}
                   </button>
                 )}
               </div>
 
               {response.tokenUsage && (
-                <div className="flex items-center space-x-4 text-xs text-gray-500">
-                  <span>📝 {response.tokenUsage.promptTokens} prompt</span>
-                  <span>💬 {response.tokenUsage.completionTokens} completion</span>
-                  <span>🔢 {response.tokenUsage.totalTokens} total</span>
+                <div className={`flex items-center ${theme === 'tui' ? 'space-x-1' : 'space-x-4'} ${themeClasses.textSmall}`}>
+                  {theme === 'tui' ? (
+                    <>
+                      <span>P:{response.tokenUsage.promptTokens}</span>
+                      <span>C:{response.tokenUsage.completionTokens}</span>
+                      <span>T:{response.tokenUsage.totalTokens}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>📝 {response.tokenUsage.promptTokens} prompt</span>
+                      <span>💬 {response.tokenUsage.completionTokens} completion</span>
+                      <span>🔢 {response.tokenUsage.totalTokens} total</span>
+                    </>
+                  )}
                 </div>
               )}
 
               {response.cost && (
-                <div className="text-xs text-gray-500">
-                  💰 Estimated cost: ${response.cost.toFixed(4)}
+                <div className={themeClasses.textSmall}>
+                  {theme === 'tui' ? `$${response.cost.toFixed(4)}` : `💰 Estimated cost: $${response.cost.toFixed(4)}`}
                 </div>
               )}
 
-              <div className="flex justify-between items-center pt-3 border-t border-gray-200">
-                <div className="flex space-x-2">
+              <div className={`flex justify-between items-center ${theme === 'tui' ? 'pt-1 border-t border-green-400' : 'pt-3 border-t border-gray-200'}`}>
+                <div className={`flex ${theme === 'tui' ? 'space-x-1' : 'space-x-2'}`}>
                   <button
                     onClick={() => copyToClipboard(response.content)}
-                    className="text-gray-400 hover:text-gray-600 p-1 rounded"
+                    className={`${themeClasses.buttonIcon} ${theme === 'tui' ? 'p-0' : 'p-1 rounded'}`}
                     title="Copy response"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className={theme === 'tui' ? 'w-3 h-3' : 'w-4 h-4'} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                     </svg>
                   </button>
                   
                   <button
                     onClick={() => setShowFullscreen(true)}
-                    className="text-gray-400 hover:text-gray-600 p-1 rounded"
+                    className={`${themeClasses.buttonIcon} ${theme === 'tui' ? 'p-0' : 'p-1 rounded'}`}
                     title="View fullscreen"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className={theme === 'tui' ? 'w-3 h-3' : 'w-4 h-4'} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
                     </svg>
                   </button>
                 </div>
                 
-                <div className="text-xs text-gray-500">
-                  {new Date(response.timestamp).toLocaleTimeString()}
+                <div className={themeClasses.textSmall}>
+                  {theme === 'tui' 
+                    ? new Date(response.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                    : new Date(response.timestamp).toLocaleTimeString()
+                  }
                 </div>
               </div>
             </div>
           )}
 
           {!response && !isLoading && (
-            <div className="text-center py-8 text-gray-500">
+            <div className={`text-center ${theme === 'tui' ? 'py-2' : 'py-8'} ${themeClasses.textMuted}`}>
               {provider.isActive ? (
-                <div className="text-sm">Ready to receive response</div>
+                <div className={themeClasses.textSmall}>
+                  {theme === 'tui' ? 'READY' : 'Ready to receive response'}
+                </div>
               ) : (
-                <div className="text-sm">
-                  <div className="text-gray-400">Provider is inactive</div>
-                  <div className="text-xs text-gray-400 mt-1">Click the dot above to activate</div>
+                <div className={themeClasses.textSmall}>
+                  <div>{theme === 'tui' ? 'INACTIVE' : 'Provider is inactive'}</div>
+                  {theme !== 'tui' && (
+                    <div className="text-xs mt-1">Click the dot above to activate</div>
+                  )}
                 </div>
               )}
             </div>

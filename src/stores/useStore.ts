@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { AppState, LLMProvider, PromptRequest, LLMResponse } from '@/types';
+import { AppState, LLMProvider, PromptRequest, LLMResponse, Theme } from '@/types';
 
 interface AppStore extends AppState {
   // Provider management
@@ -24,6 +24,9 @@ interface AppStore extends AppState {
   
   // Response management
   updateResponse: (requestId: string, response: LLMResponse) => void;
+  
+  // Theme management
+  setTheme: (theme: Theme) => void;
 }
 
 export const useStore = create<AppStore>()(
@@ -41,6 +44,7 @@ export const useStore = create<AppStore>()(
       currentRequest: null,
       history: [],
       isLoading: false,
+      theme: 'default',
 
       // Provider management
       addProvider: (provider) =>
@@ -124,6 +128,10 @@ export const useStore = create<AppStore>()(
             currentRequest: updatedCurrentRequest,
           };
         }),
+      
+      // Theme management
+      setTheme: (theme) =>
+        set({ theme }),
     }),
     {
       name: 'llm-comparison-store',
@@ -133,6 +141,7 @@ export const useStore = create<AppStore>()(
         history: state.history,
         promptSettings: state.promptSettings,
         systemPrompt: state.systemPrompt,
+        theme: state.theme,
       }),
     }
   )

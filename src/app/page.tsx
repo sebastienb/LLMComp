@@ -11,11 +11,14 @@ import ResponseGrid from '@/components/ResponseGrid';
 import ProviderModal from '@/components/ProviderModal';
 import SettingsModal from '@/components/SettingsModal';
 import RerunModal from '@/components/RerunModal';
+import ThemePicker from '@/components/ThemePicker';
+import { getThemeClasses } from '@/lib/themes';
 
 export default function Home() {
   const [showProviderModal, setShowProviderModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showRerunModal, setShowRerunModal] = useState(false);
+  const [showThemePicker, setShowThemePicker] = useState(false);
   const [editingProvider, setEditingProvider] = useState<string | null>(null);
   const [rerunProvider, setRerunProvider] = useState<LLMProvider | null>(null);
   
@@ -25,12 +28,15 @@ export default function Home() {
     isLoading, 
     currentPrompt, 
     systemPrompt, 
+    theme,
     setCurrentRequest,
     addToHistory,
     setLoading,
     updateResponse,
     updateProvider
   } = useStore();
+
+  const themeClasses = getThemeClasses(theme);
   
   const { streamLLMResponse } = useStreamingLLM();
 
@@ -168,29 +174,48 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className={themeClasses.body}>
       <Header 
         onAddProvider={handleAddProvider}
         onOpenSettings={() => setShowSettingsModal(true)}
+        onOpenThemePicker={() => setShowThemePicker(true)}
       />
       
-      <main className="container mx-auto px-4 py-8">
-        <div className="space-y-8">
+      <main className={themeClasses.container}>
+        <div className={
+          theme === 'tui' ? 'space-y-1' : 
+          theme === 'monitor' ? 'space-y-2' :
+          'space-y-8'
+        }>
           <PromptInput />
           
           {providers.length === 0 ? (
-            <div className="text-center py-12">
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                No LLM Providers Configured
+            <div className={`text-center ${
+              theme === 'tui' ? 'py-4' : 
+              theme === 'monitor' ? 'py-6' :
+              'py-12'
+            }`}>
+              <h2 className={`${themeClasses.heading} mb-4`}>
+                {theme === 'tui' ? 'NO PROVIDERS' : 
+                 theme === 'monitor' ? '■ NO PROVIDERS CONFIGURED' :
+                 'No LLM Providers Configured'}
               </h2>
-              <p className="text-gray-600 mb-6">
-                Add your first LLM provider to start comparing responses
+              <p className={`${themeClasses.textMuted} ${
+                theme === 'tui' ? 'mb-2' : 
+                theme === 'monitor' ? 'mb-4' :
+                'mb-6'
+              }`}>
+                {theme === 'tui' ? 'Add provider to start' : 
+                 theme === 'monitor' ? 'INITIALIZE FIRST PROVIDER TO BEGIN COMPARISON OPERATIONS' :
+                 'Add your first LLM provider to start comparing responses'}
               </p>
               <button
                 onClick={handleAddProvider}
-                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+                className={themeClasses.buttonPrimary}
               >
-                Add Provider
+                {theme === 'tui' ? '+ PROVIDER' : 
+                 theme === 'monitor' ? '+ INITIALIZE PROVIDER' :
+                 'Add Provider'}
               </button>
             </div>
           ) : (
@@ -228,6 +253,13 @@ export default function Home() {
           }}
           provider={rerunProvider}
           onRerun={handleRerun}
+        />
+      )}
+
+      {showThemePicker && (
+        <ThemePicker
+          isOpen={showThemePicker}
+          onClose={() => setShowThemePicker(false)}
         />
       )}
     </div>

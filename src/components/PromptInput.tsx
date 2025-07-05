@@ -5,6 +5,7 @@ import { useStore } from '@/stores/useStore';
 import { PromptRequest, LLMResponse } from '@/types';
 import { callLLM } from '@/lib/api';
 import { useStreamingLLM } from '@/hooks/useStreamingLLM';
+import { getThemeClasses } from '@/lib/themes';
 import Link from 'next/link';
 
 export default function PromptInput() {
@@ -13,6 +14,7 @@ export default function PromptInput() {
     systemPrompt,
     promptSettings,
     providers,
+    theme,
     setCurrentPrompt,
     setSystemPrompt,
     updatePromptSettings,
@@ -21,6 +23,8 @@ export default function PromptInput() {
     setLoading,
     updateResponse,
   } = useStore();
+
+  const themeClasses = getThemeClasses(theme);
 
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [characterCount, setCharacterCount] = useState(0);
@@ -146,53 +150,53 @@ export default function PromptInput() {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-      <div className="space-y-4">
+    <div className={`${themeClasses.card} ${theme === 'tui' ? 'p-2' : 'p-6'}`}>
+      <div className={theme === 'tui' ? 'space-y-1' : 'space-y-4'}>
         <div>
-          <label htmlFor="prompt" className="block text-sm font-medium text-gray-700 mb-2">
-            Prompt
+          <label htmlFor="prompt" className={`block ${themeClasses.textSmall} ${theme === 'tui' ? 'mb-1' : 'mb-2'} font-medium`}>
+            {theme === 'tui' ? 'PROMPT:' : 'Prompt'}
           </label>
           <textarea
             id="prompt"
             value={currentPrompt}
             onChange={(e) => handlePromptChange(e.target.value)}
-            placeholder="Enter your prompt here..."
-            className="w-full h-32 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-            rows={6}
+            placeholder={theme === 'tui' ? 'prompt...' : 'Enter your prompt here...'}
+            className={`${themeClasses.textarea} ${theme === 'tui' ? 'h-20' : 'h-32'}`}
+            rows={theme === 'tui' ? 3 : 6}
           />
-          <div className="flex justify-between items-center mt-2">
-            <span className="text-sm text-gray-500">
-              {characterCount} characters
+          <div className={`flex justify-between items-center ${theme === 'tui' ? 'mt-1' : 'mt-2'}`}>
+            <span className={themeClasses.textSmall}>
+              {theme === 'tui' ? `${characterCount}c` : `${characterCount} characters`}
             </span>
             <button
               onClick={() => setShowAdvanced(!showAdvanced)}
-              className="text-sm text-blue-600 hover:text-blue-800"
+              className={`${themeClasses.text} ${theme === 'tui' ? 'text-xs hover:text-green-300' : 'text-sm hover:text-blue-800'}`}
             >
-              {showAdvanced ? 'Hide' : 'Show'} Advanced Options
+              {showAdvanced ? (theme === 'tui' ? '[-]' : 'Hide') : (theme === 'tui' ? '[+]' : 'Show')} {theme === 'tui' ? 'ADV' : 'Advanced Options'}
             </button>
           </div>
         </div>
 
         {showAdvanced && (
-          <div className="space-y-4 pt-4 border-t border-gray-200">
+          <div className={`${theme === 'tui' ? 'space-y-1 pt-1 border-t border-green-400' : 'space-y-4 pt-4 border-t border-gray-200'}`}>
             <div>
-              <label htmlFor="systemPrompt" className="block text-sm font-medium text-gray-700 mb-2">
-                System Prompt (Optional)
+              <label htmlFor="systemPrompt" className={`block ${themeClasses.textSmall} ${theme === 'tui' ? 'mb-1' : 'mb-2'} font-medium`}>
+                {theme === 'tui' ? 'SYS:' : 'System Prompt (Optional)'}
               </label>
               <textarea
                 id="systemPrompt"
                 value={systemPrompt}
                 onChange={(e) => setSystemPrompt(e.target.value)}
-                placeholder="Enter system prompt..."
-                className="w-full h-24 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                rows={3}
+                placeholder={theme === 'tui' ? 'system...' : 'Enter system prompt...'}
+                className={`${themeClasses.textarea} ${theme === 'tui' ? 'h-16' : 'h-24'}`}
+                rows={theme === 'tui' ? 2 : 3}
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className={`grid ${theme === 'tui' ? 'grid-cols-3 gap-1' : 'grid-cols-1 md:grid-cols-3 gap-4'}`}>
               <div>
-                <label htmlFor="temperature" className="block text-sm font-medium text-gray-700 mb-2">
-                  Temperature: {promptSettings.temperature}
+                <label htmlFor="temperature" className={`block ${themeClasses.textSmall} ${theme === 'tui' ? 'mb-1' : 'mb-2'} font-medium`}>
+                  {theme === 'tui' ? `T:${promptSettings.temperature}` : `Temperature: ${promptSettings.temperature}`}
                 </label>
                 <input
                   type="range"
@@ -207,23 +211,23 @@ export default function PromptInput() {
               </div>
 
               <div>
-                <label htmlFor="maxTokens" className="block text-sm font-medium text-gray-700 mb-2">
-                  Max Tokens
+                <label htmlFor="maxTokens" className={`block ${themeClasses.textSmall} ${theme === 'tui' ? 'mb-1' : 'mb-2'} font-medium`}>
+                  {theme === 'tui' ? 'MAX:' : 'Max Tokens'}
                 </label>
                 <input
                   type="number"
                   id="maxTokens"
                   value={promptSettings.maxTokens}
                   onChange={(e) => updatePromptSettings({ maxTokens: parseInt(e.target.value) || 1000 })}
-                  className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className={`${themeClasses.input} ${theme === 'tui' ? 'p-1' : 'p-2'}`}
                   min="1"
                   max="4000"
                 />
               </div>
 
               <div>
-                <label htmlFor="topP" className="block text-sm font-medium text-gray-700 mb-2">
-                  Top P: {promptSettings.topP}
+                <label htmlFor="topP" className={`block ${themeClasses.textSmall} ${theme === 'tui' ? 'mb-1' : 'mb-2'} font-medium`}>
+                  {theme === 'tui' ? `P:${promptSettings.topP}` : `Top P: ${promptSettings.topP}`}
                 </label>
                 <input
                   type="range"
@@ -238,52 +242,60 @@ export default function PromptInput() {
               </div>
             </div>
 
-            <div className="flex items-center space-x-4 pt-4 border-t border-gray-200">
+            <div className={`flex items-center ${theme === 'tui' ? 'space-x-2 pt-1 border-t border-green-400' : 'space-x-4 pt-4 border-t border-gray-200'}`}>
               <label className="flex items-center">
                 <input
                   type="checkbox"
                   checked={useStreaming}
                   onChange={(e) => setUseStreaming(e.target.checked)}
-                  className="mr-2"
+                  className={theme === 'tui' ? 'mr-1' : 'mr-2'}
                 />
-                <span className="text-sm font-medium text-gray-700">Enable Streaming</span>
+                <span className={`${themeClasses.textSmall} font-medium`}>
+                  {theme === 'tui' ? 'STREAM' : 'Enable Streaming'}
+                </span>
               </label>
-              <span className="text-xs text-gray-500">
-                Streams responses in real-time to prevent timeouts
+              <span className={themeClasses.textSmall}>
+                {theme === 'tui' ? 'real-time' : 'Streams responses in real-time to prevent timeouts'}
               </span>
             </div>
           </div>
         )}
 
-        <div className="flex justify-between items-center pt-4">
-          <div className="text-sm text-gray-600">
-            {activeProviders.length} active provider{activeProviders.length !== 1 ? 's' : ''}
+        <div className={`flex justify-between items-center ${theme === 'tui' ? 'pt-1' : 'pt-4'}`}>
+          <div className={themeClasses.textSmall}>
+            {theme === 'tui' 
+              ? `${activeProviders.length}p` 
+              : `${activeProviders.length} active provider${activeProviders.length !== 1 ? 's' : ''}`
+            }
           </div>
           
-          <div className="flex space-x-4">
+          <div className={`flex ${theme === 'tui' ? 'space-x-1' : 'space-x-4'}`}>
             <button
               onClick={handleClear}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+              className={themeClasses.buttonSecondary}
             >
-              Clear
+              {theme === 'tui' ? 'CLR' : 'Clear'}
             </button>
             
             <Link
               href="/history"
-              className="px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-2"
+              className={`${themeClasses.buttonSecondary} flex items-center ${theme === 'tui' ? 'space-x-1' : 'space-x-2'}`}
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className={theme === 'tui' ? 'w-3 h-3' : 'w-4 h-4'} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <span>History</span>
+              <span>{theme === 'tui' ? 'HIST' : 'History'}</span>
             </Link>
             
             <button
               onClick={handleRunAll}
               disabled={!currentPrompt.trim() || activeProviders.length === 0}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
+              className={`${themeClasses.buttonPrimary} ${(!currentPrompt.trim() || activeProviders.length === 0) 
+                ? (theme === 'tui' ? 'opacity-50 cursor-not-allowed' : 'disabled:bg-gray-400 disabled:cursor-not-allowed') 
+                : ''
+              }`}
             >
-              Run All
+              {theme === 'tui' ? 'RUN' : 'Run All'}
             </button>
           </div>
         </div>

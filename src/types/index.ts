@@ -44,6 +44,8 @@ export interface PromptRequest {
   };
 }
 
+export type Theme = 'default' | 'tui' | 'monitor';
+
 export interface AppState {
   providers: LLMProvider[];
   currentPrompt: string;
@@ -56,4 +58,5 @@ export interface AppState {
   currentRequest: PromptRequest | null;
   history: PromptRequest[];
   isLoading: boolean;
+  theme: Theme;
 }
